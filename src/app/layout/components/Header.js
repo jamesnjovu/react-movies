@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { useStore } from "../../store/store";
 
-const logo = 'BPTN';
+const logo = 'MOVIES';
 
 function Header() {
     const store = useStore();
