@@ -1,4 +1,4 @@
-import { Toolbar, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 
 const PageHeading = (props) => {
     return (

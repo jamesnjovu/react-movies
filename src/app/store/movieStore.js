@@ -31,9 +31,7 @@ export default class MovieStore {
             this.updateLikedMovieList(moviesLiked)
         } else {
             this.updateLikedMovieList([])
-        }
-        
-        
+        } 
     }
     
     updateLikedMovieList = (movies) => {
@@ -72,7 +70,7 @@ export default class MovieStore {
 
     findLikedInList = (id) => {
         let stat = false;
-        let life = this.liked_movies.find(data => data.id == id);
+        let life = this.liked_movies.find(data => data.id === id);
         if (life === undefined) {
             stat = true;
         }

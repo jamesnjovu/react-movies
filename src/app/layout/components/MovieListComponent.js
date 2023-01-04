@@ -14,7 +14,7 @@ export default function MovieList(props) {
 
     const handleSelect = (id) => {
         const tempMemory = [...selected]
-        if (tempMemory[id] == id ) {
+        if (tempMemory[id] === id ) {
             tempMemory[id] = undefined;
         }
         else {

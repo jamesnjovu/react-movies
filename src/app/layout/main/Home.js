@@ -12,7 +12,7 @@ function Home() {
 
     useEffect(() => {
         store.loadMovies();
-    }, [])
+    }, [store])
     
     useEffect(() => {
         store.updateLiked();

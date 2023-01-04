@@ -11,7 +11,7 @@ function LikedMovies() {
 
     useEffect(() => {
         store.updateLiked();
-    }, [])
+    }, [store])
 
     const removeLikedMovie = (movie) => {
         store.removeLikedMovie(movie)
