@@ -70,9 +70,9 @@ The proxy URL is not a secret. Anyone can see it, but without your key and outsi
 
 ### Option A: GitHub Actions (recommended)
 
-The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and deploys on every push to `main`.
+The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds the app on every push to `main` and publishes it to the `gh-pages` branch.
 
-1. **Settings → Pages → Build and deployment → Source:** choose **GitHub Actions**
+1. **Settings → Pages → Build and deployment → Source:** choose **Deploy from a branch**, then pick `gh-pages` / `(root)`
 2. Add the `TMDB_PROXY_URL` repository variable (see above)
 3. Push to `main`, or run the workflow by hand from the Actions tab
 
@@ -82,7 +82,7 @@ The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) b
 REACT_APP_TMDB_PROXY_URL=https://tmdb-proxy.<your-subdomain>.workers.dev npm run deploy
 ```
 
-This builds and pushes to the `gh-pages` branch. In that case set the Pages source to the `gh-pages` branch.
+This builds and pushes to the same `gh-pages` branch from your machine.
 
 ## Scripts
 
