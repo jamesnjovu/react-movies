@@ -62,7 +62,7 @@ Optional hardening: in the Cloudflare dashboard, add a **Rate limiting rule** fo
 ### 3. Point the app at the proxy
 
 - **Locally:** put `REACT_APP_TMDB_PROXY_URL=https://tmdb-proxy.<your-subdomain>.workers.dev` in `.env.local`
-- **GitHub Pages:** go to **Settings → Secrets and variables → Actions → Variables** and add a repository variable `TMDB_PROXY_URL` with the worker URL
+- **GitHub Pages:** go to **Settings → Secrets and variables → Actions** and add `TMDB_PROXY_URL` with the worker URL, either as a repository variable or as a repository secret (both work)
 
 The proxy URL is not a secret. Anyone can see it, but without your key and outside your allowed origins it's useless to them.
 
