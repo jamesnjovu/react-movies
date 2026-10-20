@@ -22,11 +22,19 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Check TMDB proxy URL
+        run: |
+          if [ -z "$TMDB_PROXY_URL" ]; then
+            echo "::error::TMDB_PROXY_URL is not set. Add it under Settings > Secrets and variables > Actions (Variables or Secrets)."
+            exit 1
+          fi
+        env:
+          TMDB_PROXY_URL: ${{ vars.TMDB_PROXY_URL || secrets.TMDB_PROXY_URL }}
       - run: npm run build
         env:
-          # Public URL of the TMDB proxy (worker/). It is not a secret, but keeping it
-          # in a repository variable avoids hard-coding it.
-          REACT_APP_TMDB_PROXY_URL: ${{ vars.TMDB_PROXY_URL }}
+          # Public URL of the TMDB proxy (worker/). Read from a repository variable
+          # or a repository secret, whichever TMDB_PROXY_URL is stored as.
+          REACT_APP_TMDB_PROXY_URL: ${{ vars.TMDB_PROXY_URL || secrets.TMDB_PROXY_URL }}
       # Publishes build/ to the gh-pages branch, which GitHub Pages serves
       # (Settings -> Pages -> Deploy from a branch -> gh-pages).
       - uses: JamesIves/github-pages-deploy-action@v4
