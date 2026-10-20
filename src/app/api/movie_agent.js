@@ -33,7 +33,7 @@ export const CATEGORIES = {
 const Movies = {
     category: (key, page = 1) => get(CATEGORIES[key].path, { page }),
     discover: (params) => get('/discover/movie', { include_adult: false, ...params }),
-    search: (query, page = 1) => get('/search/movie', { query, page, include_adult: false }),
+    search: (query, page = 1, year) => get('/search/movie', { query, page, year, include_adult: false }),
     genres: () => get('/genre/movie/list').then(data => data.genres),
     videos: (id) => get(`/movie/${id}/videos`).then(data => data.results),
     details: (id) => get(`/movie/${id}`, {

@@ -20,8 +20,7 @@ export default function TrailerDialog({ video, open, onClose }) {
                         component="iframe"
                         title={video.name}
                         src={`https://www.youtube-nocookie.com/embed/${video.key}?autoplay=1&rel=0`}
-                        allow="autoplay; encrypted-media; picture-in-picture"
-                        allowFullScreen
+                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                         sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
                     />
                 ) : (
