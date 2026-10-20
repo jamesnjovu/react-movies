@@ -1,0 +1,12 @@
+name = "tmdb-proxy"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+# Sites allowed to call the proxy from a browser (comma separated, no trailing slash).
+ALLOWED_ORIGINS = "https://jamesnjovu.github.io,http://localhost:3000"
+
+# The TMDB credential is NOT stored here. Add it as an encrypted secret:
+#   npx wrangler secret put TMDB_API_KEY      (v3 API key)
+# or
+#   npx wrangler secret put TMDB_READ_TOKEN   (v4 API Read Access Token)

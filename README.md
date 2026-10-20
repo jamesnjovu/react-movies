@@ -1,70 +1,110 @@
-# Getting Started with Create React App
+# CineScope 🎬
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A movie discovery app built with React, MUI and MobX on top of the [TMDB API](https://developer.themoviedb.org/), deployed to GitHub Pages.
 
-## Available Scripts
+**Live:** https://jamesnjovu.github.io/react-movies
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Home** – rotating hero with trending movies and trailers, genre shortcuts, and rows for Trending, Popular, Now Playing, Top Rated and Upcoming
+- **Search** – live, debounced search from the header with infinite scrolling results
+- **Discover** – filter by genre, release year and minimum rating, and sort by popularity, rating, newest, box office or title. Filters live in the URL, so you can share them.
+- **Movie details** – backdrop hero, certification, runtime, genres, user score, tagline, director and writers, an in-app YouTube trailer, top cast, recommendations, where to watch (streaming, rent or buy for your region), budget, revenue and more
+- **People** – biography, age, place of birth and full filmography for cast and crew
+- **My Library** – favorites, watchlist and recently viewed movies, saved in your browser and synced across tabs. Liked movies from the old version move into favorites automatically.
+- Dark, responsive UI with skeleton loaders, error and empty states, toasts, a share button and keyboard-accessible controls
+- Hash-based routing (`/#/movie/123`), so deep links and page refreshes work on GitHub Pages
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Getting started
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+npm install
+cp .env.example .env.local   # then fill in one of the options
+npm start
+```
 
-### `npm test`
+## 🔐 Keeping your TMDB API key secret
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+GitHub Pages only serves static files. **Anything the React app knows at build time (every `REACT_APP_*` variable) ends up in the public JavaScript bundle.** Anyone can read it in DevTools. Storing it as a GitHub Secret doesn't help on its own, because the build still writes the key into the bundle.
 
-### `npm run build`
+The only real fix is to keep the key on a server. This repo includes a tiny proxy in [`worker/`](worker/) that runs on **Cloudflare Workers** (the free tier is plenty):
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+Browser ──> tmdb-proxy.<you>.workers.dev ──(adds the secret key)──> api.themoviedb.org
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The proxy:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- stores the key as an encrypted Cloudflare secret, so it is never in git or the bundle
+- only forwards `GET` requests to the read-only TMDB endpoints the app uses
+- only allows CORS from the origins you list, so other websites can't use it from a browser
+- caches responses at the edge for 30 minutes, which keeps you well under TMDB's rate limits
 
-### `npm run eject`
+### 1. Rotate your old key
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+A TMDB key was committed to this repository's git history earlier, so treat it as public. Go to **TMDB → Settings → API** and regenerate the key, then use the new one below.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 2. Deploy the proxy
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd worker
+npx wrangler login
+npx wrangler secret put TMDB_API_KEY     # paste your new v3 API key
+# (or: npx wrangler secret put TMDB_READ_TOKEN  for the v4 read access token)
+npx wrangler deploy
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Wrangler prints the worker URL, e.g. `https://tmdb-proxy.<your-subdomain>.workers.dev`.
+Edit `ALLOWED_ORIGINS` in [`worker/wrangler.toml`](worker/wrangler.toml) if your site lives somewhere other than `https://jamesnjovu.github.io`.
 
-## Learn More
+Optional hardening: in the Cloudflare dashboard, add a **Rate limiting rule** for the worker route, e.g. 100 requests per minute per IP.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 3. Point the app at the proxy
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Locally:** put `REACT_APP_TMDB_PROXY_URL=https://tmdb-proxy.<your-subdomain>.workers.dev` in `.env.local`
+- **GitHub Pages:** go to **Settings → Secrets and variables → Actions → Variables** and add a repository variable `TMDB_PROXY_URL` with the worker URL
 
-### Code Splitting
+The proxy URL is not a secret. Anyone can see it, but without your key and outside your allowed origins it's useless to them.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Deploying to GitHub Pages
 
-### Analyzing the Bundle Size
+### Option A: GitHub Actions (recommended)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and deploys on every push to `main`.
 
-### Making a Progressive Web App
+1. **Settings → Pages → Build and deployment → Source:** choose **GitHub Actions**
+2. Add the `TMDB_PROXY_URL` repository variable (see above)
+3. Push to `main`, or run the workflow by hand from the Actions tab
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Option B: from your machine
 
-### Advanced Configuration
+```bash
+REACT_APP_TMDB_PROXY_URL=https://tmdb-proxy.<your-subdomain>.workers.dev npm run deploy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+This builds and pushes to the `gh-pages` branch. In that case set the Pages source to the `gh-pages` branch.
 
-### Deployment
+## Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+| Command | Description |
+| --- | --- |
+| `npm start` | Start the dev server at http://localhost:3000 |
+| `npm run build` | Build a production bundle into `build/` |
+| `npm run deploy` | Build and publish to the `gh-pages` branch |
+| `npm test` | Run tests |
 
-### `npm run build` fails to minify
+## Project structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```
+src/app/
+  api/movie_agent.js        TMDB client (proxy or direct key)
+  store/                    MobX store: favorites, watchlist, recently viewed, toasts
+  hooks/useAsync.js         data fetching, pagination, debounce, document title
+  layout/components/        header, hero, cards, rows, grid, trailer dialog, ...
+  layout/main/              pages: Home, Discover, Search, Category, MovieDetails, PersonDetails, Library
+worker/                     Cloudflare Worker TMDB proxy
+```
+
+---
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
