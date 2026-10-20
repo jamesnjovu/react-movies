@@ -6,16 +6,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,16 +27,9 @@ jobs:
           # Public URL of the TMDB proxy (worker/). It is not a secret, but keeping it
           # in a repository variable avoids hard-coding it.
           REACT_APP_TMDB_PROXY_URL: ${{ vars.TMDB_PROXY_URL }}
-      - uses: actions/upload-pages-artifact@v3
+      # Publishes build/ to the gh-pages branch, which GitHub Pages serves
+      # (Settings -> Pages -> Deploy from a branch -> gh-pages).
+      - uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: build
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          branch: gh-pages
+          folder: build
