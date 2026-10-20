@@ -2,12 +2,15 @@ import {
     Avatar, Box, Button, Chip, Divider, Grid, IconButton, Link, Skeleton, Stack, Tooltip, Typography,
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PlayCircleIcon from "@mui/icons-material/PlayCircleFilled";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ShareIcon from "@mui/icons-material/IosShare";
 import PersonIcon from "@mui/icons-material/Person";
 import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import agents, { imageUrl } from "../../api/movie_agent";
+import { findFullMovie } from "../../api/archive";
 import { useAsync, useDocumentTitle } from "../../hooks/useAsync";
 import { useStore } from "../../store/store";
 import { languageName, longDate, money, pickTrailer, region, runtime, year } from "../../utils/format";
@@ -15,6 +18,7 @@ import { PosterPlaceholder } from "../components/MovieCard";
 import MovieRow from "../components/MovieRow";
 import RatingBadge from "../components/RatingBadge";
 import TrailerDialog from "../components/TrailerDialog";
+import FullMovieDialog from "../components/FullMovieDialog";
 import { FavoriteButton, WatchlistButton } from "../components/LibraryButtons";
 import { ErrorState } from "../components/StateViews";
 
@@ -46,14 +50,32 @@ function CastCard({ person }) {
     );
 }
 
-function Providers({ providers }) {
-    const local = providers?.results?.[region()] || providers?.results?.US;
+// Where-to-watch categories in order of preference (cheapest first).
+const OFFERS = [
+    { key: 'free', label: 'Free', action: 'Watch free on' },
+    { key: 'ads', label: 'With ads', action: 'Watch free on' },
+    { key: 'flatrate', label: 'Stream', action: 'Stream on' },
+    { key: 'rent', label: 'Rent', action: 'Rent on' },
+    { key: 'buy', label: 'Buy', action: 'Buy on' },
+];
+
+const localProviders = (providers) => providers?.results?.[region()] || providers?.results?.US || null;
+
+// The best way to watch the full movie legally, e.g. { label: 'Watch free on Tubi', link }.
+const bestOffer = (local) => {
     if (!local) return null;
-    const groups = [
-        ['Stream', local.flatrate],
-        ['Rent', local.rent],
-        ['Buy', local.buy],
-    ].filter(([, list]) => list && list.length);
+    const offer = OFFERS.find(o => local[o.key]?.length);
+    if (!offer) return null;
+    const provider = [...local[offer.key]].sort((a, b) => a.display_priority - b.display_priority)[0];
+    return { label: `${offer.action} ${provider.provider_name}`, link: local.link, free: offer.key === 'free' || offer.key === 'ads' };
+};
+
+function Providers({ providers }) {
+    const local = localProviders(providers);
+    if (!local) return null;
+    const groups = OFFERS
+        .map(o => [o.label, local[o.key]])
+        .filter(([, list]) => list && list.length);
     if (!groups.length) return null;
 
     return (
@@ -62,7 +84,7 @@ function Providers({ providers }) {
             <Stack spacing={1.5}>
                 {groups.map(([label, list]) => (
                     <Stack key={label} direction="row" alignItems="center" spacing={1.5}>
-                        <Typography variant="body2" color="text.secondary" sx={{ width: 48 }}>{label}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ width: 64, flexShrink: 0 }}>{label}</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                             {list.slice(0, 8).map(p => (
                                 <Tooltip key={p.provider_id} title={p.provider_name}>
@@ -111,11 +133,21 @@ function MovieDetails() {
     const store = useStore();
     const { data: movie, loading, error, retry } = useAsync(() => agents.Movies.details(id), [id]);
     const [trailerOpen, setTrailerOpen] = useState(false);
+    const [playerOpen, setPlayerOpen] = useState(false);
+    const [archiveId, setArchiveId] = useState(null);
     useDocumentTitle(movie ? `${movie.title} (${year(movie.release_date)})` : '');
 
     useEffect(() => {
         if (movie) store.addRecent(movie);
     }, [movie, store]);
+
+    // Look for a free, public-domain copy of the full film.
+    useEffect(() => {
+        let active = true;
+        setArchiveId(null);
+        if (movie) findFullMovie(movie).then(found => active && setArchiveId(found));
+        return () => { active = false; };
+    }, [movie]);
 
     const crew = useMemo(() => {
         if (!movie) return [];
@@ -135,6 +167,8 @@ function MovieDetails() {
     if (error) return <Box sx={{ pt: 10 }}><ErrorState error={error} onRetry={retry} /></Box>;
 
     const trailer = pickTrailer(movie.videos?.results);
+    const offer = bestOffer(localProviders(movie['watch/providers']));
+    const hasPrimary = Boolean(archiveId || offer);
     const rating = certification(movie);
     const recommendations = movie.recommendations?.results?.length
         ? movie.recommendations.results
@@ -201,9 +235,34 @@ function MovieDetails() {
                             <Box sx={{ mr: 1 }}>
                                 <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>User<br />score</Typography>
                             </Box>
-                            <Button variant="contained" size="large" startIcon={<PlayArrowIcon />} onClick={() => setTrailerOpen(true)} disabled={!trailer}>
-                                {trailer ? 'Play trailer' : 'No trailer'}
-                            </Button>
+                            {archiveId ? (
+                                <Button variant="contained" size="large" startIcon={<PlayCircleIcon />} onClick={() => setPlayerOpen(true)}>
+                                    Watch full movie · Free
+                                </Button>
+                            ) : offer && (
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    href={offer.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    endIcon={<OpenInNewIcon />}
+                                >
+                                    {offer.label}
+                                </Button>
+                            )}
+                            {(trailer || !hasPrimary) && (
+                                <Button
+                                    variant={hasPrimary ? 'outlined' : 'contained'}
+                                    color={hasPrimary ? 'inherit' : 'primary'}
+                                    size="large"
+                                    startIcon={<PlayArrowIcon />}
+                                    onClick={() => setTrailerOpen(true)}
+                                    disabled={!trailer}
+                                >
+                                    {trailer ? 'Trailer' : 'No trailer'}
+                                </Button>
+                            )}
                             <FavoriteButton movie={movie} sx={roundButton} />
                             <WatchlistButton movie={movie} sx={roundButton} />
                             <Tooltip title="Share">
@@ -264,6 +323,7 @@ function MovieDetails() {
             </Grid>
 
             <TrailerDialog open={trailerOpen} video={trailer} onClose={() => setTrailerOpen(false)} />
+            <FullMovieDialog archiveId={archiveId} title={movie.title} open={playerOpen} onClose={() => setPlayerOpen(false)} />
         </>
     );
 }

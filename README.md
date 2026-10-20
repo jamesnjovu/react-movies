@@ -10,6 +10,10 @@ A movie discovery app built with React, MUI and MobX on top of the [TMDB API](ht
 - **Search** – live, debounced search from the header with infinite scrolling results
 - **Discover** – filter by genre, release year and minimum rating, and sort by popularity, rating, newest, box office or title. Filters live in the URL, so you can share them.
 - **Movie details** – backdrop hero, certification, runtime, genres, user score, tagline, director and writers, an in-app YouTube trailer, top cast, recommendations, where to watch (streaming, rent or buy for your region), budget, revenue and more
+- **Watch full movies (legally)**
+  - Public-domain classics play in the app through the [Internet Archive](https://archive.org/details/feature_films) player ("Watch full movie · Free"), and a *Free Classics* row on the home page lists them.
+  - For everything else, a "Watch now" button opens the best legal option in your region (free with ads, subscription, rent or buy), using TMDB / JustWatch data.
+  - A *Free to Stream* row and a "Where to watch" filter on Discover help find movies you can watch at no cost.
 - **People** – biography, age, place of birth and full filmography for cast and crew
 - **My Library** – favorites, watchlist and recently viewed movies, saved in your browser and synced across tabs. Liked movies from the old version move into favorites automatically.
 - Dark, responsive UI with skeleton loaders, error and empty states, toasts, a share button and keyboard-accessible controls

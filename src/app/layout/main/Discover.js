@@ -4,6 +4,7 @@ import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import agents from "../../api/movie_agent";
+import { region } from "../../utils/format";
 import { useAsync, useDocumentTitle, usePaginated } from "../../hooks/useAsync";
 import MovieGrid from "../components/MovieGrid";
 import { EmptyState, ErrorState } from "../components/StateViews";
@@ -17,6 +18,14 @@ const SORTS = [
 ];
 
 const RATINGS = [0, 5, 6, 7, 8];
+
+// Where the movie can be watched, using TMDB's watch-provider data for the viewer's region.
+const AVAILABILITY = [
+    { value: '', label: 'Anywhere' },
+    { value: 'free', label: 'Free to watch', types: 'free|ads' },
+    { value: 'stream', label: 'On subscription', types: 'flatrate' },
+    { value: 'rent', label: 'Rent or buy', types: 'rent|buy' },
+];
 const THIS_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: THIS_YEAR + 2 - 1950 }, (_, i) => THIS_YEAR + 1 - i);
 
@@ -26,6 +35,7 @@ export default function Discover() {
     const sort = params.get('sort') || SORTS[0].value;
     const yearFilter = params.get('year') || '';
     const minRating = Number(params.get('rating') || 0);
+    const availability = AVAILABILITY.find(a => a.value === params.get('watch')) || AVAILABILITY[0];
     const genreList = useAsync(() => agents.Movies.genres(), []);
     useDocumentTitle('Discover');
 
@@ -44,7 +54,7 @@ export default function Discover() {
         update({ genres: next.join(',') });
     };
 
-    const filterKey = `${genres.join(',')}|${sort}|${yearFilter}|${minRating}`;
+    const filterKey = `${genres.join(',')}|${sort}|${yearFilter}|${minRating}|${availability.value}`;
     const { items, loading, error, loadMore, retry, hasMore, totalResults } = usePaginated(
         (page) => agents.Movies.discover({
             page,
@@ -52,6 +62,8 @@ export default function Discover() {
             with_genres: genres.join(',') || undefined,
             primary_release_year: yearFilter || undefined,
             'vote_average.gte': minRating || undefined,
+            with_watch_monetization_types: availability.types,
+            watch_region: availability.types ? region() : undefined,
             // Avoid obscure titles with a handful of votes dominating "highest rated".
             'vote_count.gte': sort === 'vote_average.desc' ? 300 : minRating ? 50 : undefined,
             // Don't show unreleased films when sorting by newest.
@@ -62,7 +74,7 @@ export default function Discover() {
         [filterKey],
     );
 
-    const hasFilters = genres.length > 0 || yearFilter || minRating || sort !== SORTS[0].value;
+    const hasFilters = genres.length > 0 || yearFilter || minRating || availability.value || sort !== SORTS[0].value;
 
     return (
         <>
@@ -98,6 +110,19 @@ export default function Discover() {
                         <InputLabel id="rating-label">Minimum rating</InputLabel>
                         <Select labelId="rating-label" label="Minimum rating" value={minRating} onChange={e => update({ rating: e.target.value })}>
                             {RATINGS.map(r => <MenuItem key={r} value={r}>{r ? `${r}+ ★` : 'Any rating'}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 170 }}>
+                        <InputLabel id="watch-label" shrink>Where to watch</InputLabel>
+                        <Select
+                            labelId="watch-label"
+                            label="Where to watch"
+                            notched
+                            displayEmpty
+                            value={availability.value}
+                            onChange={e => update({ watch: e.target.value })}
+                        >
+                            {AVAILABILITY.map(a => <MenuItem key={a.value} value={a.value}>{a.label}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <Box sx={{ flexGrow: 1 }} />
